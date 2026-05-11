@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use concorde_rs::{Distance, LowerDistanceMatrix, Solution, solver};
 
@@ -198,46 +198,90 @@ const GRID: &str = "..########..
 ..#......#..
 ..#.####.#..
 ..#######...";
-const START: (u32, u32) = (5, 5);
-/*
-const GRID: &str = ".#.
+const START: (u32, u32, char) = (5, 5, 'S');
+
+const GRIZD: &str = ".#.
 #.#
 ..#";
-const START: (u32, u32) = (1, 1);
-*/
+const STARZT: (u32, u32, char) = (1, 1, 'S');
 
 fn main() {
-    let grid = {
-        let mut grid = vec![START];
-        for (i, row) in GRID.lines().enumerate() {
-            for (j, c) in row.chars().enumerate() {
-                if c == '#' {
-                    grid.push((i as u32, j as u32));
-                }
-            }
-        }
-        grid
-    };
+    let mut partition = vec![vec![0]];
+    let mut nodes = vec![START];
 
-    let n = grid.len();
-    let mut dist = vec![vec![0; n]; n];
-    for i in 0..n {
-        for j in 0..n {
-            let a = grid[i];
-            let b = grid[j];
-            dist[i][j] = a.0.abs_diff(b.0) + a.1.abs_diff(b.1);
+    for (i, row) in GRID.lines().enumerate() {
+        let i = i as u32;
+        for (j, c) in row.chars().enumerate() {
+            let j = j as u32;
+            if c != '#' {
+                continue;
+            }
+            let mut new_nodes = vec![];
+            if i != 0 {
+                new_nodes.push((i, j, 'D'));
+            }
+            if i != 11 {
+                new_nodes.push((i, j, 'U'));
+            }
+            if j != 0 {
+                new_nodes.push((i, j, 'R'));
+            }
+            if j != 11 {
+                new_nodes.push((i, j, 'L'));
+            }
+            let n = nodes.len();
+            partition.push((n..n + new_nodes.len()).collect::<Vec<_>>());
+            nodes.extend(new_nodes);
         }
     }
+    let n = nodes.len();
 
-    let mut partition = vec![vec![0]];
-    for i in (1..n).step_by(2) {
-        partition.push(vec![i, i + 1]);
+    let mut dist = vec![vec![0; n]; n];
+    for i in 0..n {
+        let (si, sj, sd) = nodes[i];
+
+        let mut bfs_ans = HashMap::<(u32, u32, char), u32>::new();
+        let mut queue = VecDeque::from_iter([(si, sj, sd)]);
+        bfs_ans.insert((si, sj, sd), 0);
+        while let Some((i, j, d)) = queue.pop_front() {
+            let cur_dist = bfs_ans[&(i, j, d)];
+
+            let mut nexts = vec![(i, j, 'U'), (i, j, 'D'), (i, j, 'L'), (i, j, 'R')];
+            if i != 0 && d != 'U' {
+                nexts.push((i - 1, j, 'U'));
+            }
+            if i != 11 && d != 'D' {
+                nexts.push((i + 1, j, 'D'));
+            }
+            if j != 0 && d != 'L' {
+                nexts.push((i, j - 1, 'L'));
+            }
+            if j != 11 && d != 'R' {
+                nexts.push((i, j + 1, 'R'));
+            }
+
+            for tup in nexts {
+                if bfs_ans.contains_key(&tup) {
+                    continue;
+                }
+                bfs_ans.insert(tup, cur_dist + 1);
+                queue.push_back(tup);
+            }
+        }
+
+        dist[i][0] = 0;
+        for j in 1..n {
+            dist[i][j] = bfs_ans[&nodes[j]];
+        }
     }
 
     let (cost, mut tour) = solve_set_atsp(&dist, &partition);
     find_rotate(&mut tour, 0);
-    for v in tour {
-        print!("{:?} ", grid[v]);
+
+    for w in tour.windows(2) {
+        let a = nodes[w[0]];
+        let b = nodes[w[1]];
+        println!("{a:?} -> {b:?} cost {}", dist[w[0]][w[1]]);
     }
     println!("{cost}");
 }
