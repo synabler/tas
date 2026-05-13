@@ -1,10 +1,30 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::io::Write;
 
-use concorde_rs::{Distance, LowerDistanceMatrix, Solution, solver};
+use std::process::Command;
 
 fn find_rotate(values: &mut [usize], target: usize) {
     let i = values.iter().position(|x| *x == target).unwrap();
     values.rotate_left(i);
+}
+
+fn log_stsp_problem(distances: &[Vec<u32>]) -> std::io::Result<()> {
+    let mut file = std::fs::File::create("concorde/input.txt")?;
+
+    writeln!(&mut file, "NAME : p")?;
+    writeln!(&mut file, "TYPE : TSP")?;
+    writeln!(&mut file, "DIMENSION : {}", distances.len())?;
+    writeln!(&mut file, "EDGE_WEIGHT_TYPE : EXPLICIT")?;
+    writeln!(&mut file, "EDGE_WEIGHT_FORMAT : FULL_MATRIX")?;
+    writeln!(&mut file, "EDGE_WEIGHT_SECTION")?;
+    for row in distances {
+        for x in row {
+            write!(&mut file, "{x} ")?;
+        }
+        writeln!(&mut file)?;
+    }
+    writeln!(&mut file, "EOF")?;
+    Ok(())
 }
 
 fn solve_stsp(distances: &[Vec<u32>]) -> (u32, Vec<usize>) {
@@ -21,22 +41,24 @@ fn solve_stsp(distances: &[Vec<u32>]) -> (u32, Vec<usize>) {
     }
 
     // solution
-    let values = distances
-        .iter()
-        .enumerate()
-        .flat_map(|(i, row)| row[..=i].iter().copied())
-        .collect::<Vec<_>>();
-    assert_eq!(values.len(), n * (n + 1) / 2);
-    let matrix = LowerDistanceMatrix {
-        num_nodes: n as u32,
-        values,
-    };
-    let solution = solver::tsp_lk(&matrix).unwrap();
-    let cost = solution.length;
-    let tour = solution
-        .tour
-        .into_iter()
-        .map(|v| v as usize)
+    log_stsp_problem(distances).unwrap();
+    Command::new("./concorde")
+        .current_dir("./concorde")
+        .arg("input.txt")
+        .status()
+        .unwrap();
+    let cost = std::fs::read_to_string("concorde/input.res")
+        .unwrap()
+        .split_whitespace()
+        .nth(2)
+        .unwrap()
+        .parse::<u32>()
+        .unwrap();
+    let tour = std::fs::read_to_string("concorde/input.sol")
+        .unwrap()
+        .split_whitespace()
+        .skip(1)
+        .map(|w| w.parse::<usize>().unwrap())
         .collect::<Vec<_>>();
 
     // solution verification
@@ -199,11 +221,6 @@ const GRID: &str = "..########..
 ..#.####.#..
 ..#######...";
 const START: (u32, u32, char) = (5, 5, 'S');
-
-const GRIZD: &str = ".#.
-#.#
-..#";
-const STARZT: (u32, u32, char) = (1, 1, 'S');
 
 fn main() {
     let mut partition = vec![vec![0]];

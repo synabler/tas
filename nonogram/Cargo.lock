@@ -3,14 +3,5 @@
 version = 4
 
 [[package]]
-name = "concorde_rs"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4aea8f3471f0493380e796fe8eb8091360c555a19ff9b4d88290f430cf0add58"
-
-[[package]]
 name = "nonogram"
 version = "0.1.0"
-dependencies = [
- "concorde_rs",
-]
