@@ -1,8 +1,10 @@
 use std::collections::HashSet;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::Write;
 
 use std::process::Command;
 
+#[allow(dead_code)]
 pub fn find_rotate(values: &mut [usize], target: usize) {
     let i = values.iter().position(|x| *x == target).unwrap();
     values.rotate_left(i);
@@ -11,7 +13,10 @@ pub fn find_rotate(values: &mut [usize], target: usize) {
 fn log_stsp_problem(distances: &[Vec<u32>]) -> std::io::Result<()> {
     let mut file = std::fs::File::create("concorde/input.txt")?;
 
-    writeln!(&mut file, "NAME : p")?;
+    let mut hasher = DefaultHasher::new();
+    distances.hash(&mut hasher);
+    let name = format!("{:x}", hasher.finish());
+    writeln!(&mut file, "NAME : {name}")?;
     writeln!(&mut file, "TYPE : TSP")?;
     writeln!(&mut file, "DIMENSION : {}", distances.len())?;
     writeln!(&mut file, "EDGE_WEIGHT_TYPE : EXPLICIT")?;
@@ -27,6 +32,7 @@ fn log_stsp_problem(distances: &[Vec<u32>]) -> std::io::Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn solve_stsp(distances: &[Vec<u32>]) -> (u32, Vec<usize>) {
     // preliminary verification
     let n = distances.len();
@@ -60,6 +66,7 @@ pub fn solve_stsp(distances: &[Vec<u32>]) -> (u32, Vec<usize>) {
     (cost, tour)
 }
 
+#[allow(dead_code)]
 pub fn solve_atsp(distances: &[Vec<u32>]) -> (u32, Vec<usize>) {
     // preliminary verification
     let n = distances.len();
@@ -117,6 +124,7 @@ pub fn solve_atsp(distances: &[Vec<u32>]) -> (u32, Vec<usize>) {
     (cost, decoupled_tour)
 }
 
+#[allow(dead_code)]
 pub fn solve_set_atsp(distances: &[Vec<u32>], partition: &[Vec<usize>]) -> (u32, Vec<usize>) {
     // preliminary verification
     let n = distances.len();
