@@ -1,5 +1,19 @@
 use util::bfs;
 
+/// Toggles a mask tool and returns the new list of equipped masks.
+///
+/// If the mask cannot be toggled, just clones `equipped`.
+///
+/// Parameters:
+/// - `equipped`: the list of currently equipped masks,
+///   from innermost to outermost, each represented by a bitmask that
+///   denotes which areas are being masked.
+/// - `mask`: the mask to toggle, represented by the list of areas
+///   that are being masked.
+/// - `on_condition`: assuming the mask is currently not equipped,
+///   the function that returns whether the mask can be equipped.
+/// - `off_condition`: assuming the mask is currently equipped,
+///   the function that returns whether the mask can be unequipped.
 fn toggle_mask(
     equipped: &[u32],
     mask: &[u32],
@@ -12,14 +26,22 @@ fn toggle_mask(
         if off_condition(equipped) {
             new_ball.remove(i);
         }
-    } else {
-        if on_condition(equipped) {
-            new_ball.push(mask);
-        }
+    } else if on_condition(equipped) {
+        new_ball.push(mask);
     }
     new_ball
 }
 
+/// A factory ball, divided into `N` areas.
+///
+/// Fields:
+/// - `color`: the color of each area. 0 is reserved for uncolored.
+///   if one of the paints (or brushes) are white, use 1 instead
+///   (and the starting states should be all 1 as well).
+/// - `masks`: the list of currently equipped masks,
+///   from innermost to outermost, each represented by a bitmask that
+///   denotes which areas are being masked.
+///
 /// If rotation is enabled, follow this indexing:
 /// ```notest
 ///  07
@@ -29,26 +51,39 @@ fn toggle_mask(
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct AreaBall<const N: usize> {
-    // 0 = uncolored
     color: [u8; N],
     masks: Vec<u32>,
 }
 
 impl<const N: usize> AreaBall<N> {
+    /// Paints the ball with paint (or brush) and returns the new ball.
+    /// 0 is reserved for uncolored, which means the area will not be
+    /// colored regardless of masks.
     fn paint(&self, new_color: [u8; N]) -> Self {
         let mut new_ball = self.clone();
-        for i in 0..N {
-            if new_color[i] == 0 {
+        for (i, new_col) in new_color.iter().copied().enumerate() {
+            if new_col == 0 {
                 continue;
             }
             if self.masks.iter().any(|mask| mask & (1 << i) != 0) {
                 continue;
             }
-            new_ball.color[i] = new_color[i];
+            new_ball.color[i] = new_col;
         }
         new_ball
     }
 
+    /// Toggles a mask tool and returns the new list of equipped masks.
+    ///
+    /// If the mask cannot be toggled, just clones `self`.
+    ///
+    /// Parameters:
+    /// - `mask`: the mask to toggle, represented by the list of areas
+    ///   that are being masked.
+    /// - `on_condition`: assuming the mask is currently not equipped,
+    ///   the function that returns whether the mask can be equipped.
+    /// - `off_condition`: assuming the mask is currently equipped,
+    ///   the function that returns whether the mask can be unequipped.
     fn toggle_mask(
         &self,
         mask: &[u32],
@@ -56,11 +91,14 @@ impl<const N: usize> AreaBall<N> {
         off_condition: impl Fn(&[u32]) -> bool,
     ) -> Self {
         Self {
-            color: self.color.clone(),
+            color: self.color,
             masks: toggle_mask(&self.masks, mask, on_condition, off_condition),
         }
     }
 
+    /// Rotates a ball counterclockwise.
+    ///
+    /// If the ball cannot be rotated, just clones `self`.
     fn rotate_ccw(&self) -> Self {
         let mut new_ball = self.clone();
         if self.masks.is_empty() {
@@ -70,18 +108,31 @@ impl<const N: usize> AreaBall<N> {
     }
 }
 
+/// A factory ball that uses plants, divided into `N` areas.
+///
+/// Fields:
+/// - `grass`: the state of grass in each area.
+///   0, 1, 2, 3, 4 denotes unseeded, seeded, green, dark green, and brown,
+///   respectively.
+/// - `yellow`: the state of yellow flowers in each area.
+///   0, 1, 2, 3 denotes unseeded, seeded, small bloom, and large bloom,
+///   respectively.
+/// - `blue`: the state of blue flowers in each area, similarly.
+/// - `masks`: the list of currently equipped masks,
+///   from innermost to outermost, each represented by a bitmask that
+///   denotes which areas are being masked.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct GrassBall<const N: usize> {
-    // 0 unseeded, 1 seeded, 2 green, 3 dark green, 4 brown
     grass: [u8; N],
-    // 0 unseeded, 1 seeded, 2 small flower, 3 big flower
     yellow: [u8; N],
     blue: [u8; N],
     masks: Vec<u32>,
 }
 
 impl<const N: usize> GrassBall<N> {
-    /// 0 grass, 1 yellow, 2 blue
+    /// Plants seeds of given species in the unmasked areas.
+    /// 0, 1, 2 correspond to grass, yellow flowers, and blue flowers,
+    /// respectively.
     fn plant(&self, species: u8) -> Self {
         let mut new_ball = self.clone();
         for i in 0..N {
@@ -99,6 +150,7 @@ impl<const N: usize> GrassBall<N> {
         new_ball
     }
 
+    /// Waters the unmasked areas.
     fn water(&self) -> Self {
         let mut new_ball = self.clone();
         for i in 0..N {
@@ -112,6 +164,17 @@ impl<const N: usize> GrassBall<N> {
         new_ball
     }
 
+    /// Toggles a mask tool and returns the new list of equipped masks.
+    ///
+    /// If the mask cannot be toggled, just clones `self`.
+    ///
+    /// Parameters:
+    /// - `mask`: the mask to toggle, represented by the list of areas
+    ///   that are being masked.
+    /// - `on_condition`: assuming the mask is currently not equipped,
+    ///   the function that returns whether the mask can be equipped.
+    /// - `off_condition`: assuming the mask is currently equipped,
+    ///   the function that returns whether the mask can be unequipped.
     fn toggle_mask(
         &self,
         mask: &[u32],

@@ -4,6 +4,13 @@ use std::{
     hash::Hash,
 };
 
+/// Performs a breadth-first search and returns the shortest path.
+///
+/// Parameters:
+/// - `starts`: list of starting states
+/// - `neighbors`: function that takes a state and returns the list
+///   of possible next states, along with a symbol to use in the output
+/// - `is_goal`: function that determines whether a state is a goal state
 pub fn bfs<T: Debug + Hash + Eq + Clone, SYMBOL>(
     starts: &[T],
     neighbors: impl Fn(&T) -> Vec<(SYMBOL, T)>,
