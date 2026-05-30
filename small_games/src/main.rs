@@ -106,6 +106,18 @@ impl<const N: usize> AreaBall<N> {
         }
         new_ball
     }
+
+    /// Decrements the color of each area by 1 and returns the new ball.
+    fn bleach(&self) -> Self {
+        let mut new_ball = self.clone();
+        for (i, col) in new_ball.color.iter_mut().enumerate() {
+            if self.masks.iter().any(|mask| mask & (1 << i) != 0) {
+                continue;
+            }
+            *col = col.saturating_sub(1);
+        }
+        new_ball
+    }
 }
 
 /// A factory ball that uses plants, divided into `N` areas.
@@ -496,6 +508,292 @@ fn f2l29() -> Vec<&'static str> {
     )
 }
 
+/// - AREA:  0-3
+/// - COLOR: 1 blue, 2 orange
+/// - MASK:  0 2 left, 1 3 right, 0 1 cap
+fn f3l09() -> Vec<&'static str> {
+    let start = AreaBall {
+        color: [0; 4],
+        masks: vec![],
+    };
+    let end = AreaBall {
+        color: [2, 1, 1, 2],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        |ball| {
+            vec![
+                ("blue", ball.paint([1; 4])),
+                ("orange", ball.paint([2; 4])),
+                (
+                    "left",
+                    ball.toggle_mask(
+                        &[0, 2],
+                        |masks| !masks.contains(&3),
+                        |masks| masks.last() == Some(&5),
+                    ),
+                ),
+                (
+                    "right",
+                    ball.toggle_mask(
+                        &[1, 3],
+                        |masks| !masks.contains(&3),
+                        |masks| masks.last() == Some(&10),
+                    ),
+                ),
+                (
+                    "cap",
+                    ball.toggle_mask(&[0, 1], |_| true, |masks| masks.last() == Some(&3)),
+                ),
+            ]
+        },
+        |ball| ball == &end,
+    )
+}
+
+/// - AREA:  0-4
+/// - COLOR: 1 yellow, 2 pink, 3 black, 4 blue
+/// - MASK:  1 2 belt, 0 1 cap
+fn f3l11() -> Vec<&'static str> {
+    let start = AreaBall {
+        color: [0; 4],
+        masks: vec![],
+    };
+    let end = AreaBall {
+        color: [2, 1, 3, 4],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        |ball| {
+            vec![
+                ("yellow", ball.paint([1; 4])),
+                ("pink", ball.paint([2; 4])),
+                ("black", ball.paint([3; 4])),
+                ("blue", ball.paint([4; 4])),
+                (
+                    "belt",
+                    ball.toggle_mask(
+                        &[1, 2],
+                        |masks| !masks.contains(&3),
+                        |masks| masks.last() == Some(&6),
+                    ),
+                ),
+                (
+                    "cap",
+                    ball.toggle_mask(&[0, 1], |_| true, |masks| masks.last() == Some(&3)),
+                ),
+            ]
+        },
+        |ball| ball == &end,
+    )
+}
+
+/// - AREA:  0-4
+/// - COLOR: 1-2 blue
+/// - MASK:  1 2 belt, 0 1 cap
+fn f3l15() -> Vec<&'static str> {
+    let start = AreaBall {
+        color: [0; 4],
+        masks: vec![],
+    };
+    let end = AreaBall {
+        color: [1, 2, 1, 2],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        |ball| {
+            vec![
+                ("blue", ball.paint([2; 4])),
+                ("bleach", ball.bleach()),
+                (
+                    "belt",
+                    ball.toggle_mask(
+                        &[1, 2],
+                        |masks| !masks.contains(&3),
+                        |masks| masks.last() == Some(&6),
+                    ),
+                ),
+                (
+                    "cap",
+                    ball.toggle_mask(&[0, 1], |_| true, |masks| masks.last() == Some(&3)),
+                ),
+            ]
+        },
+        |ball| ball == &end,
+    )
+}
+
+/// - AREA:  0-3
+/// - COLOR: 1-2 red
+/// - MASK:  0 2 left, 1 3 right, 0 1 cap
+fn f3l20() -> Vec<&'static str> {
+    let start = AreaBall {
+        color: [0; 4],
+        masks: vec![],
+    };
+    let end = AreaBall {
+        color: [1, 0, 2, 1],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        |ball| {
+            vec![
+                ("red", ball.paint([2; 4])),
+                ("bleach", ball.bleach()),
+                (
+                    "left",
+                    ball.toggle_mask(
+                        &[0, 2],
+                        |masks| !masks.contains(&3),
+                        |masks| masks.last() == Some(&5),
+                    ),
+                ),
+                (
+                    "right",
+                    ball.toggle_mask(
+                        &[1, 3],
+                        |masks| !masks.contains(&3),
+                        |masks| masks.last() == Some(&10),
+                    ),
+                ),
+                (
+                    "cap",
+                    ball.toggle_mask(&[0, 1], |_| true, |masks| masks.last() == Some(&3)),
+                ),
+            ]
+        },
+        |ball| ball == &end,
+    )
+}
+
+/// - AREA:  rotation
+/// - COLOR: 1 green, 2 yellow
+/// - MASK:  0 1 6 7 cap, 4 5 6 7 right, 1 2 mask
+fn f3l26() -> Vec<&'static str> {
+    let start = AreaBall {
+        color: [0; 8],
+        masks: vec![],
+    };
+    let end = AreaBall {
+        color: [1, 2, 1, 2, 1, 2, 1, 2],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        |ball| {
+            vec![
+                ("green", ball.paint([1; 8])),
+                ("yellow", ball.paint([2; 8])),
+                ("cap", ball.toggle_mask(&[0, 1, 6, 7], |_| true, |_| true)),
+                (
+                    "right",
+                    ball.toggle_mask(
+                        &[4, 5, 6, 7],
+                        |masks| !masks.contains(&(1 + 2 + 64 + 128)),
+                        |masks| masks.last() == Some(&(16 + 32 + 64 + 128)),
+                    ),
+                ),
+                (
+                    "mask",
+                    ball.toggle_mask(
+                        &[1, 2],
+                        |masks| !masks.contains(&(1 + 2 + 64 + 128)),
+                        |masks| masks.last() == Some(&6),
+                    ),
+                ),
+                ("rotate", ball.rotate_ccw()),
+            ]
+        },
+        |ball| ball == &end,
+    )
+}
+
+/// - AREA:  0-3
+/// - MASK:  0 2 left, 1 3 right, 0 1 cap
+fn f3l28() -> Vec<&'static str> {
+    let start = GrassBall {
+        grass: [0; 4],
+        yellow: [0; 4],
+        blue: [0; 4],
+        masks: vec![],
+    };
+    let end = GrassBall {
+        grass: [2, 3, 3, 4],
+        yellow: [3, 3, 0, 0],
+        blue: [0; 4],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        |ball| {
+            vec![
+                ("grass", ball.plant(0)),
+                ("yellow", ball.plant(1)),
+                ("water", ball.water()),
+                (
+                    "left",
+                    ball.toggle_mask(
+                        &[0, 2],
+                        |masks| !masks.contains(&3),
+                        |masks| masks.last() == Some(&5),
+                    ),
+                ),
+                (
+                    "right",
+                    ball.toggle_mask(
+                        &[1, 3],
+                        |masks| !masks.contains(&3),
+                        |masks| masks.last() == Some(&10),
+                    ),
+                ),
+                (
+                    "cap",
+                    ball.toggle_mask(&[0, 1], |_| true, |masks| masks.last() == Some(&3)),
+                ),
+            ]
+        },
+        |ball| ball == &end,
+    )
+}
+
+/// - AREA:  rotation
+/// - COLOR: 0-2 red
+/// - MASK:  0 1 6 7 cap, 1 2 mask
+fn f3l30() -> Vec<&'static str> {
+    let start = AreaBall {
+        color: [0; 8],
+        masks: vec![],
+    };
+    let end = AreaBall {
+        color: [1, 2, 1, 1, 1, 1, 0, 0],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        |ball| {
+            vec![
+                ("red", ball.paint([2; 8])),
+                ("bleach", ball.bleach()),
+                ("cap", ball.toggle_mask(&[0, 1, 6, 7], |_| true, |_| true)),
+                (
+                    "mask",
+                    ball.toggle_mask(
+                        &[1, 2],
+                        |masks| !masks.contains(&(1 + 2 + 64 + 128)),
+                        |masks| masks.last() == Some(&6),
+                    ),
+                ),
+                ("rotate", ball.rotate_ccw()),
+            ]
+        },
+        |ball| ball == &end,
+    )
+}
+
 fn main() {
     println!("F1L12: {:?}", f1l12());
     println!();
@@ -508,4 +806,13 @@ fn main() {
     println!("F2L25: {:?}", f2l25());
     println!("F2L28: {:?}", f2l28());
     println!("F2L29: {:?}", f2l29());
+    println!();
+    println!("F3L09: {:?}", f3l09());
+    println!("F3L11: {:?}", f3l11());
+    println!("F3L15: {:?}", f3l15());
+    println!("F3L20: {:?}", f3l20());
+    println!("F3L26: {:?}", f3l26());
+    println!("F3L28: {:?}", f3l28());
+    println!("F3L30: {:?}", f3l30());
+    println!();
 }
