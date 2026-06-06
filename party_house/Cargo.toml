@@ -1,0 +1,10 @@
+[package]
+name = "party_house"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+zoldath = { version = "0.1.0", path = "../crates/zoldath" }
+
+[profile.dev]
+debug = 0
