@@ -29,6 +29,11 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
         // greedy invitation
         for i in 0..house.deck.len().min(house.house_size as usize) {
             let guest = &house.deck[i];
+            if (i + 1 == house.house_size as usize || (bought_star <= 3 && star >= 0))
+                && guest.gtype == Mermaid
+            {
+                break;
+            }
             if guest.trouble && trouble == 2 {
                 break;
             }
@@ -37,6 +42,9 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
             delta_time += 1;
             if guest.trouble {
                 trouble += 1;
+            }
+            if guest.gtype == Mermaid {
+                delta_time += 100;
             }
             if guest.gtype.is_star() {
                 star += 1;
@@ -86,29 +94,52 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
         // shop
         let mut cursor = "exit";
         delta_time += 1;
-        if bought_star <= 2 && house.pop >= 55 {
+        if bought_star == 0 && house.pop >= 50 {
             // move cursor
             if cursor == "exit" {
                 delta_time += 2;
             }
-            cursor = "alien";
+            cursor = "superhero";
             // buy
-            house.buy_guest(Alien);
+            house.buy_guest(Superhero);
             bought_star += 1;
             delta_time += 1;
-        } else if bought_star >= 3 && house.pop >= 40 {
+        } else if bought_star == 1 && house.pop >= 57 {
             // move cursor
             if cursor == "exit" {
-                delta_time += 2;
+                delta_time += 3;
             }
-            cursor = "alien";
+            cursor = "mermaid";
             // buy
-            house.buy_guest(Alien);
+            house.buy_guest(Mermaid);
+            bought_star += 1;
+            delta_time += 1;
+        } else if bought_star == 2 && house.pop >= 57 {
+            // move cursor
+            if cursor == "exit" {
+                delta_time += 3;
+            }
+            cursor = "mermaid";
+            // buy
+            house.buy_guest(Mermaid);
+            bought_star += 1;
+            delta_time += 1;
+        } else if bought_star >= 3 && house.pop >= 35 {
+            // move cursor
+            if cursor == "exit" {
+                delta_time += 3;
+            }
+            cursor = "mermaid";
+            // buy
+            house.buy_guest(Mermaid);
+            bought_star += 1;
             delta_time += 1;
         }
         while house.cash >= house.expansion_cost() {
             // move cursor
             if cursor == "exit" {
+                delta_time += 1;
+            } else if cursor == "mermaid" {
                 delta_time += 1;
             }
             cursor = "expand";
@@ -126,10 +157,13 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
     None
 }
 
+const SEED_START: u64 = 0;
+const TRIES: u64 = 100_000_000;
+
 fn main() {
     let mut optimum = (999999, 0);
-    for seed in 28509684..100_000_000 {
-        if seed % 10_000_000 == 0 {
+    for seed in SEED_START..SEED_START + TRIES {
+        if seed % 2_000_000 == 0 {
             println!("done {seed}");
         }
         let Some(time) = sim(seed, false) else {

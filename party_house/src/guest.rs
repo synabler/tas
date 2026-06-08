@@ -14,7 +14,9 @@ pub enum GuestType {
     CuteDog,
 
     // stars
+    Mermaid,
     Alien,
+    Superhero,
 }
 
 impl Debug for GuestType {
@@ -24,7 +26,9 @@ impl Debug for GuestType {
             Self::OldFriend => write!(f, "OLD"),
             Self::RichPal => write!(f, "RIC"),
             Self::CuteDog => write!(f, "CUT"),
+            Self::Mermaid => write!(f, "*MER"),
             Self::Alien => write!(f, "*ALI"),
+            Self::Superhero => write!(f, "*SUP"),
         }
     }
 }
@@ -42,39 +46,45 @@ impl GuestType {
 
     /// Whether the guest is a star.
     pub fn is_star(&self) -> bool {
-        matches!(self, Self::Alien)
+        self.cost() >= 20
     }
 
     /// Base popularity payout by default.
     pub fn default_pop(&self) -> i32 {
         match self {
-            GuestType::WildBuddy => 2,
-            GuestType::OldFriend => 1,
-            GuestType::RichPal => 0,
-            GuestType::CuteDog => 2,
-            GuestType::Alien => 0,
+            Self::WildBuddy => 2,
+            Self::OldFriend => 1,
+            Self::RichPal => 0,
+            Self::CuteDog => 2,
+            Self::Mermaid => 0,
+            Self::Alien => 0,
+            Self::Superhero => 3,
         }
     }
 
     /// Base cash payout by default.
     pub fn default_cash(&self) -> i32 {
         match self {
-            GuestType::WildBuddy => 0,
-            GuestType::OldFriend => 0,
-            GuestType::RichPal => 1,
-            GuestType::CuteDog => 0,
-            GuestType::Alien => 0,
+            Self::WildBuddy => 0,
+            Self::OldFriend => 0,
+            Self::RichPal => 1,
+            Self::CuteDog => 0,
+            Self::Mermaid => 0,
+            Self::Alien => 0,
+            Self::Superhero => 0,
         }
     }
 
     /// Popularity cost to add the guest to rolodex.
     pub fn cost(&self) -> u32 {
         match self {
-            GuestType::WildBuddy => 0,
-            GuestType::OldFriend => 2,
-            GuestType::RichPal => 3,
-            GuestType::CuteDog => 7,
-            GuestType::Alien => 40,
+            Self::WildBuddy => 0,
+            Self::OldFriend => 2,
+            Self::RichPal => 3,
+            Self::CuteDog => 7,
+            Self::Mermaid => 35,
+            Self::Alien => 40,
+            Self::Superhero => 50,
         }
     }
 }
