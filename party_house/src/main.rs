@@ -2,7 +2,7 @@ mod guest;
 mod house;
 
 use crate::{guest::GuestType::*, house::House};
-use zoldath::Rng;
+use zoldath::rng::Rng;
 
 /// Returns the estimated number of frames until winning,
 /// or `None` if you don't win.

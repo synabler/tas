@@ -4,7 +4,7 @@ use crate::guest::{
     Guest,
     GuestType::{self, *},
 };
-use zoldath::Rng;
+use zoldath::rng::Rng;
 
 #[derive(Clone, Debug)]
 pub struct House {
