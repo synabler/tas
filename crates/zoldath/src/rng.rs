@@ -1,9 +1,18 @@
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Rng {
     pub seed: u64,
     pub num_rolls: usize,
     s1: u64,
     s2: u64,
+}
+
+impl std::fmt::Debug for Rng {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Rng")
+            .field("seed", &self.seed)
+            .field("num_rolls", &self.num_rolls)
+            .finish()
+    }
 }
 
 impl Rng {

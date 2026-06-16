@@ -200,6 +200,70 @@ impl<const N: usize> GrassBall<N> {
     }
 }
 
+/// A factory ball, divided into `N` areas,
+/// optimized for Factory Balls 4 and Christmas Edition.
+///
+/// Fields:
+/// - `target_color`: target color in each area.
+/// - `correct`: whether the color is correct in each area.
+/// - `masks`: the list of currently equipped masks,
+///   from innermost to outermost, each represented by a bitmask that
+///   denotes which areas are being masked.
+///
+/// If rotation is enabled, follow this indexing:
+/// ```notest
+///  07
+/// 1  6
+/// 2  5
+///  34
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct BoolBall<const N: usize> {
+    target_color: [u8; N],
+    correct: [bool; N],
+    masks: Vec<u32>,
+}
+
+impl<const N: usize> BoolBall<N> {
+    /// Paints the ball with paint (or brush) and returns the new ball.
+    /// 0 is reserved for uncolored, which means the area will not be
+    /// colored regardless of masks.
+    fn paint(&self, new_color: u8) -> Self {
+        let mut new_ball = self.clone();
+        for i in 0..N {
+            if self.masks.iter().any(|mask| mask & (1 << i) != 0) {
+                continue;
+            }
+            new_ball.correct[i] = new_color == self.target_color[i];
+        }
+        new_ball
+    }
+
+    /// Toggles a mask tool and returns the new list of equipped masks.
+    ///
+    /// If the mask cannot be toggled, just clones `self`.
+    ///
+    /// Parameters:
+    /// - `mask`: the mask to toggle, represented by the list of areas
+    ///   that are being masked.
+    /// - `on_condition`: assuming the mask is currently not equipped,
+    ///   the function that returns whether the mask can be equipped.
+    /// - `off_condition`: assuming the mask is currently equipped,
+    ///   the function that returns whether the mask can be unequipped.
+    fn toggle_mask(
+        &self,
+        mask: &[u32],
+        on_condition: impl Fn(&[u32]) -> bool,
+        off_condition: impl Fn(&[u32]) -> bool,
+    ) -> Self {
+        Self {
+            target_color: self.target_color,
+            correct: self.correct,
+            masks: toggle_mask(&self.masks, mask, on_condition, off_condition),
+        }
+    }
+}
+
 /// - AREA:  0 upper bg, 1 upper circle, 2 lower bg, 3 lower circle
 /// - COLOR: 1 pink, 2 orange, 3 yellow
 /// - MASK:  1 3 spot
@@ -794,6 +858,354 @@ fn f3l30() -> Vec<&'static str> {
     )
 }
 
+/// ```notest
+/// 1  3
+///  02  bg:8
+///  46
+/// 5  7
+/// ```
+fn f4_masku2d2(
+    colors: &[&'static str],
+) -> impl Fn(&BoolBall<9>) -> Vec<(&'static str, BoolBall<9>)> {
+    |ball| {
+        let mut nexts = colors
+            .iter()
+            .enumerate()
+            .map(|(c, color)| (*color, ball.paint(c as u8 + 1)))
+            .collect::<Vec<_>>();
+        nexts.push((
+            "u1",
+            ball.toggle_mask(
+                &[0, 2],
+                |masks| !masks.contains(&(1 + 2 + 4 + 8)),
+                |masks| !masks.contains(&(1 + 2 + 4 + 8)),
+            ),
+        ));
+        nexts.push((&"u2", ball.toggle_mask(&[0, 1, 2, 3], |_| true, |_| true)));
+        nexts.push((
+            "d1",
+            ball.toggle_mask(
+                &[4, 6],
+                |masks| !masks.contains(&(16 + 32 + 64 + 128)),
+                |masks| !masks.contains(&(16 + 32 + 64 + 128)),
+            ),
+        ));
+        nexts.push((&"d2", ball.toggle_mask(&[4, 5, 6, 7], |_| true, |_| true)));
+        nexts
+    }
+}
+
+/// ```notest
+/// 4      5
+///   1  3
+///    02
+/// 6      7
+/// ```
+fn f4_masku2hatlr(
+    colors: &[&'static str],
+) -> impl Fn(&BoolBall<8>) -> Vec<(&'static str, BoolBall<8>)> {
+    const U1: u32 = 1 + 4;
+    const U2: u32 = 1 + 2 + 4 + 8;
+    const HAT: u32 = 1 + 2 + 4 + 8 + 16 + 32;
+    //const L: u32 = 1 + 2 + 16 + 64;
+    //const R: u32 = 4 + 8 + 32 + 128;
+    |ball| {
+        let mut nexts = colors
+            .iter()
+            .enumerate()
+            .map(|(c, color)| (*color, ball.paint(c as u8 + 1)))
+            .collect::<Vec<_>>();
+        nexts.push((
+            "u1",
+            ball.toggle_mask(
+                &[0, 2],
+                |masks| !masks.contains(&U2) && !masks.contains(&HAT),
+                |masks| !masks.contains(&U2) && !masks.contains(&HAT),
+            ),
+        ));
+        nexts.push((
+            "u2",
+            ball.toggle_mask(
+                &[0, 1, 2, 3],
+                |masks| !masks.contains(&HAT),
+                |masks| !masks.contains(&HAT),
+            ),
+        ));
+        nexts.push((
+            "hat",
+            ball.toggle_mask(&[0, 1, 2, 3, 4, 5], |_| true, |_| true),
+        ));
+        nexts.push((
+            "l",
+            ball.toggle_mask(
+                &[0, 1, 4, 6],
+                |masks| masks.is_empty(),
+                |masks| masks.len() == 1,
+            ),
+        ));
+        nexts.push((
+            "r",
+            ball.toggle_mask(
+                &[2, 3, 5, 7],
+                |masks| masks.is_empty(),
+                |masks| masks.len() == 1,
+            ),
+        ));
+        nexts
+    }
+}
+
+/// ```notest
+/// 0101010
+/// 2323232
+/// 4545454
+/// 6767676
+/// ```
+fn f4_maskudbelt(
+    colors: &[&'static str],
+) -> impl Fn(&BoolBall<8>) -> Vec<(&'static str, BoolBall<8>)> {
+    const U: u32 = 1 + 4;
+    const D: u32 = 16 + 64;
+    const BELT: u32 = 4 + 8 + 16 + 32;
+    |ball| {
+        let mut nexts = colors
+            .iter()
+            .enumerate()
+            .map(|(c, color)| (*color, ball.paint(c as u8 + 1)))
+            .collect::<Vec<_>>();
+        nexts.push((
+            "u",
+            ball.toggle_mask(
+                &[0, 2],
+                |_| true,
+                |masks| {
+                    let Some(belt_i) = masks.iter().position(|m| *m == BELT) else {
+                        return true;
+                    };
+                    masks.iter().position(|m| *m == U).unwrap() > belt_i
+                },
+            ),
+        ));
+        nexts.push((
+            "d",
+            ball.toggle_mask(
+                &[4, 6],
+                |_| true,
+                |masks| {
+                    let Some(belt_i) = masks.iter().position(|m| *m == BELT) else {
+                        return true;
+                    };
+                    masks.iter().position(|m| *m == D).unwrap() > belt_i
+                },
+            ),
+        ));
+        nexts.push((
+            "belt",
+            ball.toggle_mask(&[2, 3, 4, 5], |_| true, |masks| masks.last() == Some(&BELT)),
+        ));
+        nexts
+    }
+}
+
+/// ```notest
+///   1  3
+/// 8  02  9
+///    46
+///   5  7
+/// ```
+fn f4_masku2d2lr(
+    colors: &[&'static str],
+) -> impl Fn(&BoolBall<10>) -> Vec<(&'static str, BoolBall<10>)> {
+    const U1: u32 = 1 + 4;
+    const U2: u32 = 1 + 2 + 4 + 8;
+    const D1: u32 = 16 + 64;
+    const D2: u32 = 16 + 32 + 64 + 128;
+    const L: u32 = 1 + 2 + 16 + 32 + 256;
+    const R: u32 = 4 + 8 + 64 + 128 + 512;
+    |ball| {
+        let mut nexts = colors
+            .iter()
+            .enumerate()
+            .map(|(c, color)| (*color, ball.paint(c as u8 + 1)))
+            .collect::<Vec<_>>();
+        nexts.push((
+            "u1",
+            ball.toggle_mask(
+                &[0, 2],
+                |masks| !masks.contains(&U2),
+                |masks| !masks.contains(&U2),
+            ),
+        ));
+        nexts.push((&"u2", ball.toggle_mask(&[0, 1, 2, 3], |_| true, |_| true)));
+        nexts.push((
+            "d1",
+            ball.toggle_mask(
+                &[4, 6],
+                |masks| !masks.contains(&D2),
+                |masks| !masks.contains(&D2),
+            ),
+        ));
+        nexts.push((&"d2", ball.toggle_mask(&[4, 5, 6, 7], |_| true, |_| true)));
+        nexts.push((
+            "l",
+            ball.toggle_mask(
+                &[0, 1, 4, 5, 8],
+                |masks| masks.is_empty(),
+                |masks| masks.len() == 1,
+            ),
+        ));
+        nexts.push((
+            "r",
+            ball.toggle_mask(
+                &[2, 3, 6, 7, 9],
+                |masks| masks.is_empty(),
+                |masks| masks.len() == 1,
+            ),
+        ));
+        nexts
+    }
+}
+
+fn f4l08() -> Vec<&'static str> {
+    let start = BoolBall {
+        target_color: [1, 2, 1, 2, 2, 1, 2, 1, 3],
+        correct: [false; 9],
+        masks: vec![],
+    };
+    let end = BoolBall {
+        target_color: [1, 2, 1, 2, 2, 1, 2, 1, 3],
+        correct: [true; 9],
+        masks: vec![],
+    };
+    bfs(&[start], f4_masku2d2(&["black", "red", "blue"]), |ball| {
+        ball == &end
+    })
+}
+
+fn f4l10() -> Vec<&'static str> {
+    let start = BoolBall {
+        target_color: [1, 4, 1, 4, 3, 2, 2, 3],
+        correct: [false; 8],
+        masks: vec![],
+    };
+    let end = BoolBall {
+        target_color: [1, 4, 1, 4, 3, 2, 2, 3],
+        correct: [true; 8],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        f4_masku2hatlr(&["black", "yellow", "green", "white"]),
+        |ball| ball == &end,
+    )
+}
+
+fn f4l11() -> Vec<&'static str> {
+    let start = BoolBall {
+        target_color: [2, 3, 2, 1, 4, 1, 4, 3],
+        correct: [false; 8],
+        masks: vec![],
+    };
+    let end = BoolBall {
+        target_color: [2, 3, 2, 1, 4, 1, 4, 3],
+        correct: [true; 8],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        f4_maskudbelt(&["pink", "yellow", "green", "orange"]),
+        |ball| ball == &end,
+    )
+}
+
+fn f4l13() -> Vec<&'static str> {
+    let start = BoolBall {
+        target_color: [1, 1, 2, 2, 2, 2, 1, 1, 3, 3],
+        correct: [false; 10],
+        masks: vec![],
+    };
+    let end = BoolBall {
+        target_color: [1, 1, 2, 2, 2, 2, 1, 1, 3, 3],
+        correct: [true; 10],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        f4_masku2d2lr(&["orange", "blue", "red"]),
+        |ball| ball == &end,
+    )
+}
+
+fn f4l19() -> Vec<&'static str> {
+    let start = BoolBall {
+        target_color: [2, 3, 1, 4, 1, 4, 2, 3],
+        correct: [false; 8],
+        masks: vec![],
+    };
+    let end = BoolBall {
+        target_color: [2, 3, 1, 4, 1, 4, 2, 3],
+        correct: [true; 8],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        f4_maskudbelt(&["green", "black", "red", "yellow"]),
+        |ball| ball == &end,
+    )
+}
+
+fn f4l20() -> Vec<&'static str> {
+    let start = BoolBall {
+        target_color: [1, 1, 2, 2, 2, 2, 1, 1, 2, 2],
+        correct: [false; 10],
+        masks: vec![],
+    };
+    let end = BoolBall {
+        target_color: [1, 1, 2, 2, 2, 2, 1, 1, 2, 2],
+        correct: [true; 10],
+        masks: vec![],
+    };
+    bfs(&[start], f4_masku2d2lr(&["red", "yellow"]), |ball| {
+        ball == &end
+    })
+}
+
+fn f4l23() -> Vec<&'static str> {
+    let start = BoolBall {
+        target_color: [2, 1, 2, 3, 3, 1, 1, 3],
+        correct: [false; 8],
+        masks: vec![],
+    };
+    let end = BoolBall {
+        target_color: [2, 1, 2, 3, 3, 1, 1, 3],
+        correct: [true; 8],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        f4_masku2hatlr(&["pink", "black", "white"]),
+        |ball| ball == &end,
+    )
+}
+
+fn f4l26() -> Vec<&'static str> {
+    let start = BoolBall {
+        target_color: [2, 1, 1, 2, 2, 1, 1, 2, 3, 4],
+        correct: [false; 10],
+        masks: vec![],
+    };
+    let end = BoolBall {
+        target_color: [2, 1, 1, 2, 2, 1, 1, 2, 3, 4],
+        correct: [true; 10],
+        masks: vec![],
+    };
+    bfs(
+        &[start],
+        f4_masku2d2lr(&["blue", "red", "yellow", "green"]),
+        |ball| ball == &end,
+    )
+}
+
 fn main() {
     println!("F1L12: {:?}", f1l12());
     println!();
@@ -815,4 +1227,12 @@ fn main() {
     println!("F3L28: {:?}", f3l28());
     println!("F3L30: {:?}", f3l30());
     println!();
+    println!("F4L08: {:?}", f4l08());
+    println!("F4L10: {:?}", f4l10());
+    println!("F4L11: {:?}", f4l11());
+    println!("F4L13: {:?}", f4l13());
+    println!("F4L19: {:?}", f4l19());
+    println!("F4L20: {:?}", f4l20());
+    println!("F4L23: {:?}", f4l23());
+    println!("F4L26: {:?}", f4l26());
 }

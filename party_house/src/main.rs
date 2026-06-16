@@ -1,8 +1,7 @@
-mod guest;
-mod house;
-
-use crate::{guest::GuestType::*, house::House};
-use zoldath::rng::Rng;
+use zoldath::{
+    game::party_house::{GuestType, House},
+    rng::Rng,
+};
 
 /// Returns the estimated number of frames until winning,
 /// or `None` if you don't win.
@@ -11,53 +10,57 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
     rng.roll_onto(45);
     let mut house = House::new(rng);
 
-    // number of frames
-    let mut time = 0usize;
-    let mut bought_star = 0usize;
+    let mut time = 0usize; // number of frames
+
+    // when pop reaches this value, buy this guest
+    let strategy = [
+        (5, GuestType::Rockstar),
+        (5, GuestType::Rockstar),
+        (5, GuestType::Comedian),
+        (5, GuestType::Comedian),
+        (5, GuestType::Comedian),
+        (5, GuestType::Comedian),
+        (40, GuestType::Alien),
+        (40, GuestType::Alien),
+        (40, GuestType::Alien),
+        (40, GuestType::Alien),
+    ];
+    let mut strat_ptr = 0;
 
     for day in 0..25 {
         house.start_day();
         if do_debug {
-            println!("D{day} {house:?}");
+            println!("D{} {house}", 25 - day);
         }
 
         let mut delta_time = 0;
-        let mut invited = 0usize;
-        let mut trouble = 0;
+
+        let mut invited = 0;
         let mut star = 0;
+        let mut trouble = 0;
 
         // greedy invitation
-        for i in 0..house.deck.len().min(house.house_size as usize) {
-            let guest = &house.deck[i];
-            if (i + 1 == house.house_size as usize || (bought_star <= 3 && star >= 0))
-                && guest.gtype == Mermaid
-            {
-                break;
-            }
-            if guest.trouble && trouble == 2 {
-                break;
-            }
-
-            invited += 1;
-            delta_time += 1;
-            if guest.trouble {
+        for i in 0..house.house_size() {
+            let gtype = house.cheat_guest(i as usize).gtype();
+            if gtype.is_trouble() {
+                if trouble == 2 {
+                    break;
+                }
                 trouble += 1;
             }
-            if guest.gtype == Mermaid {
-                delta_time += 100;
-            }
-            if guest.gtype.is_star() {
+            if gtype.is_star() {
                 star += 1;
                 if star == 4 {
                     break;
                 }
             }
+            invited += 1;
         }
 
         // close party
         delta_time += 100;
         if do_debug {
-            if invited == house.house_size as usize {
+            if invited == house.house_size() {
                 println!("invite full {invited}");
             } else {
                 println!("invite {invited}");
@@ -74,81 +77,49 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
         }
 
         // payout
-        for i in 0..invited {
-            let guest = house.deck[i];
-            if guest.pop != 0 {
-                delta_time += 8;
-                house.add_pop(guest.pop);
-            } else {
-                delta_time += 1;
+        let mut comeds = 0;
+        for i in 0..invited as usize {
+            let guest = *house.cheat_guest(i);
+            delta_time += 2;
+            if guest.pop() != 0 {
+                house.add_pop(guest.pop());
+                delta_time += 7;
             }
-            if guest.cash != 0 {
-                delta_time += 8;
-                house.add_cash(guest.cash);
-            } else {
-                delta_time += 1;
+            if guest.cash() != 0 {
+                house.add_cash(guest.cash());
+                delta_time += 7;
+            }
+            if guest.gtype() == GuestType::Comedian {
+                comeds += 1;
             }
         }
+        if comeds > 0 && invited == house.house_size() {
+            house.add_pop(5 * comeds);
+            delta_time += 30;
+        }
+
+        // transition time
         delta_time += 9 + 3 + 3 + 60 + 36 + 7;
 
         // shop
-        let mut cursor = "exit";
-        delta_time += 1;
-        if bought_star == 0 && house.pop >= 50 {
-            // move cursor
-            if cursor == "exit" {
-                delta_time += 2;
+        while let Some((threshold, gtype)) = strategy.get(strat_ptr) {
+            if house.pop() < *threshold {
+                break;
             }
-            cursor = "superhero";
-            // buy
-            house.buy_guest(Superhero);
-            bought_star += 1;
-            delta_time += 1;
-        } else if bought_star == 1 && house.pop >= 57 {
-            // move cursor
-            if cursor == "exit" {
-                delta_time += 3;
+            house.buy_guest(*gtype);
+            if do_debug {
+                println!("buy {gtype:?}");
             }
-            cursor = "mermaid";
-            // buy
-            house.buy_guest(Mermaid);
-            bought_star += 1;
-            delta_time += 1;
-        } else if bought_star == 2 && house.pop >= 57 {
-            // move cursor
-            if cursor == "exit" {
-                delta_time += 3;
-            }
-            cursor = "mermaid";
-            // buy
-            house.buy_guest(Mermaid);
-            bought_star += 1;
-            delta_time += 1;
-        } else if bought_star >= 3 && house.pop >= 35 {
-            // move cursor
-            if cursor == "exit" {
-                delta_time += 3;
-            }
-            cursor = "mermaid";
-            // buy
-            house.buy_guest(Mermaid);
-            bought_star += 1;
-            delta_time += 1;
+            strat_ptr += 1;
         }
-        while house.cash >= house.expansion_cost() {
-            // move cursor
-            if cursor == "exit" {
-                delta_time += 1;
-            } else if cursor == "mermaid" {
-                delta_time += 1;
+        while house.expand() {
+            if do_debug {
+                println!("expand");
             }
-            cursor = "expand";
-            // buy
-            house.expand();
-            delta_time += 1;
         }
         delta_time += 30;
 
+        // update time
         time += delta_time;
         if do_debug {
             println!("estimated +{delta_time}f => {time}f");
@@ -157,7 +128,7 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
     None
 }
 
-const SEED_START: u64 = 0;
+const SEED_START: u64 = 200_000_000;
 const TRIES: u64 = 100_000_000;
 
 fn main() {
