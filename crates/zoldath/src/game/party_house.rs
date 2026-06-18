@@ -6,14 +6,28 @@ pub enum GuestType {
     OldFriend,
     RichPal,
 
+    // 3
+    Driver,
+    // 4
     TicketTaker,
+    // 5
     Rockstar,
     Comedian,
     Caterer,
+    // 6
+    Gangster,
+    // 7
+    CuteDog,
+    Gambler,
+    // 8
+    Writer,
+    // 9
     Auctioneer,
 
     // stars
+    Mermaid,
     Alien,
+    Superhero,
 }
 
 impl GuestType {
@@ -30,8 +44,14 @@ impl GuestType {
             Self::Rockstar => "🎸",
             Self::Comedian => "🤣",
             Self::Caterer => "🍽️",
+            Self::Gangster => "🔫",
+            Self::CuteDog => "🐩",
+            Self::Gambler => "🎰",
+            Self::Writer => "📝",
             Self::Auctioneer => "💰",
+            Self::Mermaid => "🧜‍",
             Self::Alien => "👽",
+            Self::Superhero => "🦸",
         }
     }
 
@@ -46,8 +66,14 @@ impl GuestType {
             Self::Rockstar => 5,
             Self::Comedian => 5,
             Self::Caterer => 5,
+            Self::Gangster => 6,
+            Self::CuteDog => 7,
+            Self::Gambler => 7,
+            Self::Writer => 8,
             Self::Auctioneer => 9,
+            Self::Mermaid => 35,
             Self::Alien => 40,
+            Self::Superhero => 50,
         }
     }
 
@@ -62,8 +88,14 @@ impl GuestType {
             Self::Rockstar => 3,
             Self::Comedian => 0,
             Self::Caterer => 4,
+            Self::Gangster => 0,
+            Self::CuteDog => 2,
+            Self::Gambler => 2,
+            Self::Writer => 1,
             Self::Auctioneer => 0,
+            Self::Mermaid => 0,
             Self::Alien => 0,
+            Self::Superhero => 3,
         }
     }
 
@@ -78,8 +110,14 @@ impl GuestType {
             Self::Rockstar => 2,
             Self::Comedian => -1,
             Self::Caterer => -1,
+            Self::Gangster => 4,
+            Self::CuteDog => 0,
+            Self::Gambler => 3,
+            Self::Writer => 0,
             Self::Auctioneer => 3,
+            Self::Mermaid => 0,
             Self::Alien => 0,
+            Self::Superhero => 0,
         }
     }
 
@@ -94,8 +132,35 @@ impl GuestType {
             Self::Rockstar => true,
             Self::Comedian => false,
             Self::Caterer => false,
+            Self::Gangster => true,
+            Self::CuteDog => false,
+            Self::Gambler => true,
+            Self::Writer => false,
             Self::Auctioneer => false,
+            Self::Mermaid => false,
             Self::Alien => false,
+            Self::Superhero => false,
+        }
+    }
+
+    /// Returns whether this guest is white flag (cancels 1 trouble).
+    pub fn is_white_flag(&self) -> bool {
+        match self {
+            Self::WildBuddy => false,
+            Self::OldFriend => false,
+            Self::RichPal => false,
+            Self::TicketTaker => false,
+            Self::Rockstar => false,
+            Self::Comedian => false,
+            Self::Caterer => false,
+            Self::Gangster => false,
+            Self::CuteDog => true,
+            Self::Gambler => false,
+            Self::Writer => false,
+            Self::Auctioneer => false,
+            Self::Mermaid => false,
+            Self::Alien => false,
+            Self::Superhero => false,
         }
     }
 

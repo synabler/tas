@@ -1,5 +1,5 @@
 use zoldath::{
-    game::party_house::{GuestType, House},
+    game::party_house::{Guest, GuestType, House},
     rng::Rng,
 };
 
@@ -11,19 +11,22 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
     let mut house = House::new(rng);
 
     let mut time = 0usize; // number of frames
+    let mut bought_star = 0;
 
     // when pop reaches this value, buy this guest
     let strategy = [
-        (5, GuestType::Rockstar),
-        (5, GuestType::Rockstar),
-        (5, GuestType::Comedian),
-        (5, GuestType::Comedian),
-        (5, GuestType::Comedian),
-        (5, GuestType::Comedian),
-        (40, GuestType::Alien),
-        (40, GuestType::Alien),
-        (40, GuestType::Alien),
-        (40, GuestType::Alien),
+        (7, GuestType::Gambler),
+        (7, GuestType::CuteDog),
+        (8, GuestType::Writer),
+        (7, GuestType::Gambler),
+        (7, GuestType::CuteDog),
+        (8, GuestType::Writer),
+        (8, GuestType::Writer),
+        (8, GuestType::Writer),
+        (50, GuestType::Mermaid),
+        (50, GuestType::Mermaid),
+        (50, GuestType::Mermaid),
+        (35, GuestType::Mermaid),
     ];
     let mut strat_ptr = 0;
 
@@ -38,15 +41,30 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
         let mut invited = 0;
         let mut star = 0;
         let mut trouble = 0;
+        let mut flag = 0;
 
         // greedy invitation
         for i in 0..house.house_size() {
             let gtype = house.cheat_guest(i as usize).gtype();
+            // too much trouble, end party
             if gtype.is_trouble() {
-                if trouble == 2 {
+                if trouble - flag == 2 {
                     break;
                 }
                 trouble += 1;
+            }
+            // stop 100f delay or overflow
+            if gtype == GuestType::Mermaid {
+                if bought_star < 4 || i == house.house_size() - 1 {
+                    break;
+                }
+                delta_time += 100;
+            }
+
+            // invite otherwise
+            invited += 1;
+            if gtype.is_white_flag() {
+                flag += 1;
             }
             if gtype.is_star() {
                 star += 1;
@@ -54,7 +72,6 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
                     break;
                 }
             }
-            invited += 1;
         }
 
         // close party
@@ -77,7 +94,7 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
         }
 
         // payout
-        let mut comeds = 0;
+        let mut writers = 0;
         for i in 0..invited as usize {
             let guest = *house.cheat_guest(i);
             delta_time += 2;
@@ -89,12 +106,12 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
                 house.add_cash(guest.cash());
                 delta_time += 7;
             }
-            if guest.gtype() == GuestType::Comedian {
-                comeds += 1;
+            if guest.gtype() == GuestType::Writer {
+                writers += 1;
             }
         }
-        if comeds > 0 && invited == house.house_size() {
-            house.add_pop(5 * comeds);
+        if writers > 0 {
+            house.add_pop(4 * trouble);
             delta_time += 30;
         }
 
@@ -107,6 +124,9 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
                 break;
             }
             house.buy_guest(*gtype);
+            if gtype.is_star() {
+                bought_star += 1;
+            }
             if do_debug {
                 println!("buy {gtype:?}");
             }
@@ -128,7 +148,7 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
     None
 }
 
-const SEED_START: u64 = 200_000_000;
+const SEED_START: u64 = 0;
 const TRIES: u64 = 100_000_000;
 
 fn main() {
