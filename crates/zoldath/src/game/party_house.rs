@@ -10,21 +10,29 @@ pub enum GuestType {
     Driver,
     // 4
     TicketTaker,
+    Hippy,
     // 5
     Rockstar,
     Comedian,
     Caterer,
+    Cheerleader,
     // 6
     Gangster,
+    Athlete,
     // 7
     CuteDog,
     Gambler,
+    Stylist,
+    Counselor,
     // 8
     Writer,
     // 9
     Auctioneer,
+    // 11
+    Bartender,
 
     // stars
+    Dinosaur,
     Mermaid,
     Alien,
     Superhero,
@@ -40,15 +48,23 @@ impl GuestType {
             Self::WildBuddy => "🤪",
             Self::OldFriend => "👨",
             Self::RichPal => "💵",
+            Self::Driver => "🚕",
             Self::TicketTaker => "🎫",
+            Self::Hippy => "😎",
             Self::Rockstar => "🎸",
             Self::Comedian => "🤣",
             Self::Caterer => "🍽️",
+            Self::Cheerleader => "🎉",
             Self::Gangster => "🔫",
+            Self::Athlete => "🏀",
             Self::CuteDog => "🐩",
             Self::Gambler => "🎰",
+            Self::Stylist => "💈",
+            Self::Counselor => "🙂",
             Self::Writer => "📝",
             Self::Auctioneer => "💰",
+            Self::Bartender => "🍷",
+            Self::Dinosaur => "🦖",
             Self::Mermaid => "🧜‍",
             Self::Alien => "👽",
             Self::Superhero => "🦸",
@@ -62,15 +78,23 @@ impl GuestType {
             Self::WildBuddy => 0,
             Self::OldFriend => 2,
             Self::RichPal => 3,
+            Self::Driver => 3,
             Self::TicketTaker => 4,
+            Self::Hippy => 4,
             Self::Rockstar => 5,
             Self::Comedian => 5,
             Self::Caterer => 5,
+            Self::Cheerleader => 5,
             Self::Gangster => 6,
+            Self::Athlete => 6,
             Self::CuteDog => 7,
             Self::Gambler => 7,
+            Self::Stylist => 7,
+            Self::Counselor => 7,
             Self::Writer => 8,
             Self::Auctioneer => 9,
+            Self::Bartender => 11,
+            Self::Dinosaur => 25,
             Self::Mermaid => 35,
             Self::Alien => 40,
             Self::Superhero => 50,
@@ -84,15 +108,23 @@ impl GuestType {
             Self::WildBuddy => 2,
             Self::OldFriend => 1,
             Self::RichPal => 0,
+            Self::Driver => 0,
             Self::TicketTaker => -1,
+            Self::Hippy => 1,
             Self::Rockstar => 3,
             Self::Comedian => 0,
             Self::Caterer => 4,
+            Self::Cheerleader => 1,
             Self::Gangster => 0,
+            Self::Athlete => 1,
             Self::CuteDog => 2,
             Self::Gambler => 2,
+            Self::Stylist => 0,
+            Self::Counselor => 0,
             Self::Writer => 1,
             Self::Auctioneer => 0,
+            Self::Bartender => 1,
+            Self::Dinosaur => 0,
             Self::Mermaid => 0,
             Self::Alien => 0,
             Self::Superhero => 3,
@@ -106,15 +138,23 @@ impl GuestType {
             Self::WildBuddy => 0,
             Self::OldFriend => 0,
             Self::RichPal => 1,
+            Self::Driver => 0,
             Self::TicketTaker => 2,
+            Self::Hippy => 0,
             Self::Rockstar => 2,
             Self::Comedian => -1,
             Self::Caterer => -1,
+            Self::Cheerleader => 0,
             Self::Gangster => 4,
+            Self::Athlete => 1,
             Self::CuteDog => 0,
             Self::Gambler => 3,
+            Self::Stylist => -1,
+            Self::Counselor => 0,
             Self::Writer => 0,
             Self::Auctioneer => 3,
+            Self::Bartender => 0,
+            Self::Dinosaur => 0,
             Self::Mermaid => 0,
             Self::Alien => 0,
             Self::Superhero => 0,
@@ -128,15 +168,23 @@ impl GuestType {
             Self::WildBuddy => true,
             Self::OldFriend => false,
             Self::RichPal => false,
+            Self::Driver => false,
             Self::TicketTaker => false,
+            Self::Hippy => false,
             Self::Rockstar => true,
             Self::Comedian => false,
             Self::Caterer => false,
+            Self::Cheerleader => false,
             Self::Gangster => true,
+            Self::Athlete => false,
             Self::CuteDog => false,
             Self::Gambler => true,
+            Self::Stylist => false,
+            Self::Counselor => false,
             Self::Writer => false,
             Self::Auctioneer => false,
+            Self::Bartender => false,
+            Self::Dinosaur => true,
             Self::Mermaid => false,
             Self::Alien => false,
             Self::Superhero => false,
@@ -149,15 +197,23 @@ impl GuestType {
             Self::WildBuddy => false,
             Self::OldFriend => false,
             Self::RichPal => false,
+            Self::Driver => false,
             Self::TicketTaker => false,
+            Self::Hippy => true,
             Self::Rockstar => false,
             Self::Comedian => false,
             Self::Caterer => false,
+            Self::Cheerleader => false,
             Self::Gangster => false,
+            Self::Athlete => false,
             Self::CuteDog => true,
             Self::Gambler => false,
+            Self::Stylist => false,
+            Self::Counselor => false,
             Self::Writer => false,
             Self::Auctioneer => false,
+            Self::Bartender => false,
+            Self::Dinosaur => false,
             Self::Mermaid => false,
             Self::Alien => false,
             Self::Superhero => false,
@@ -227,6 +283,10 @@ impl Guest {
         self.cash
     }
 
+    pub fn trouble(&self) -> i32 {
+        self.trouble as i32
+    }
+
     /// Resets the guest status for a new day.
     pub fn reset(&mut self) {
         self.trouble = self.gtype.is_trouble();
@@ -256,7 +316,7 @@ pub struct House {
 
 impl std::fmt::Display for House {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "^{} ${} [", self.pop, self.cash)?;
+        write!(f, "^{} ${} [{}] [", self.pop, self.cash, self.house_size)?;
         for guest in &self.deck {
             write!(f, "{guest} ")?;
         }
@@ -383,5 +443,10 @@ impl House {
     /// Returns the guest at position `i`. This should only be used for TAS.
     pub fn cheat_guest(&self, i: usize) -> &Guest {
         &self.deck[i]
+    }
+
+    /// Returns the guest at position `i`. This should only be used for TAS.
+    pub fn cheat_guest_mut(&mut self, i: usize) -> &mut Guest {
+        &mut self.deck[i]
     }
 }
