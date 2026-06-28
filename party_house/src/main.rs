@@ -15,38 +15,33 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
     // when pop reaches this value, buy this guest
     let strategy = [
         (5, GuestType::Rockstar),
-        (7, GuestType::Stylist),
-        (5, GuestType::Cheerleader),
-        (7, GuestType::Stylist),
-        (5, GuestType::Cheerleader),
-        (57, GuestType::Dinosaur),
-        (32, GuestType::Dinosaur),
-        (7, GuestType::Counselor),
-        (50, GuestType::Dinosaur),
-        (25, GuestType::Dinosaur),
+        (5, GuestType::Rockstar),
+        (4, GuestType::Comedian),
+        (4, GuestType::Comedian),
+        (4, GuestType::Comedian),
+        (4, GuestType::Comedian),
+        (40, GuestType::Alien),
+        (40, GuestType::Alien),
+        (40, GuestType::Alien),
+        (40, GuestType::Alien),
     ];
     let mut strat_ptr = 0;
     let mut bought_star = 0;
 
-    for day in 0..13 {
+    for day in 0..16 {
         house.start_day();
         if do_debug {
             println!("D{} {house}", 25 - day);
         }
 
-        let mut delta_time = 0;
+        let mut delta_time = 0usize;
 
         let mut invited = 0;
         let mut star = 0;
         let mut flag = 0;
         let mut trouble = 0;
-
-        let mut counselor = 0;
-        let mut counselor_active = 0;
-        let mut stylist = 0;
-        let mut stylist_active = 0;
-        let mut cheerleader_active = 0;
-        let mut bartender = 0;
+        
+        let mut comedian = 0;
 
         //////////////////////////// greedy invitation
 
@@ -55,37 +50,19 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
             // too much trouble, use counselor or end party
             if gtype.is_trouble() {
                 if trouble - flag == 2 {
-                    if counselor_active == 0 {
-                        break;
-                    }
-                    if do_debug {
-                        println!("Counsel at {i}");
-                    }
-                    counselor_active -= 1;
-                    trouble = 0;
+                    break;
                 }
                 trouble += 1;
             }
 
             // invite otherwise
             invited += 1;
-            if gtype == GuestType::Cheerleader {
-                cheerleader_active += 1;
-            }
-            if gtype == GuestType::Counselor {
-                counselor += 1;
-                counselor_active += 1;
-            }
-            if gtype == GuestType::Stylist {
-                stylist += 1;
-                stylist_active += 1;
-            }
-            if gtype == GuestType::Bartender {
-                bartender += 1;
-            }
             if gtype.is_white_flag() {
                 flag += 1;
             }
+            if gtype == GuestType::Comedian {
+				comedian += 1;
+			}
             if gtype.is_star() {
                 star += 1;
                 if star == 4 {
@@ -95,53 +72,6 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
         }
 
         //////////////////////////// decide styling
-
-        loop {
-            if stylist == 0 {
-                break;
-            }
-            if stylist_active == 0 && cheerleader_active == 0 {
-                break;
-            }
-
-            // find guest
-            let best_i = house.cheat_deck()[..invited]
-                .iter()
-                .enumerate()
-                .filter(|(_, guest)| guest.pop() < 9)
-                .max_by_key(|(_, guest)| {
-                    2 * guest.pop() + guest.cash() - 3 * guest.trouble()
-                        + 10 * ((guest.gtype() == GuestType::Bartender) as i32)
-                        + ((guest.gtype() == GuestType::Cheerleader) as i32)
-                })
-                .map(|(i, _)| i);
-            let Some(best_i) = best_i else {
-                break;
-            };
-
-            // do style
-            let guest = house.cheat_guest_mut(best_i);
-            while guest.pop() < 9 {
-                if stylist_active == 0 {
-                    if cheerleader_active == 0 {
-                        break;
-                    }
-                    cheerleader_active -= 1;
-                    counselor_active = counselor;
-                    stylist_active = stylist;
-                    delta_time += 4;
-                    if do_debug {
-                        println!("Cheer to {counselor_active} {stylist_active}");
-                    }
-                }
-                guest.increment_base_pop();
-                stylist_active -= 1;
-                delta_time += 7;
-                if do_debug {
-                    println!("Style {best_i} to {guest}");
-                }
-            }
-        }
 
         //////////////////////////// close party
 
@@ -177,10 +107,10 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
                 delta_time += 7;
             }
         }
-        if bartender > 0 {
-            house.add_cash(2 * trouble * bartender);
-            delta_time += 30;
-        }
+        if comedian > 0 && invited == house.house_size() {
+			house.add_pop(5 * comedian);
+			delta_time += 30;
+		}
 
         // payment
         for i in 0..invited as usize {
@@ -200,6 +130,7 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
 
         //////////////////////////// shop
 
+		//println!("NOW {house}");
         while let Some((threshold, gtype)) = strategy.get(strat_ptr) {
             if house.pop() < *threshold {
                 break;
