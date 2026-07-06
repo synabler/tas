@@ -9,9 +9,12 @@ pub enum GuestType {
     // 3
     Driver,
     // 4
+    Introvert,
     TicketTaker,
     Hippy,
     // 5
+    Magician,
+    Photographer,
     Rockstar,
     Comedian,
     Caterer,
@@ -33,8 +36,10 @@ pub enum GuestType {
 
     // stars
     Dinosaur,
+    Dragon,
     Mermaid,
     Alien,
+    Ghost,
     Superhero,
 }
 
@@ -49,8 +54,11 @@ impl GuestType {
             Self::OldFriend => "👨",
             Self::RichPal => "💵",
             Self::Driver => "🚕",
+            Self::Introvert => "😶",
             Self::TicketTaker => "🎫",
             Self::Hippy => "😎",
+            Self::Magician => "🪄",
+            Self::Photographer => "📸",
             Self::Rockstar => "🎸",
             Self::Comedian => "🤣",
             Self::Caterer => "🍽️",
@@ -65,8 +73,10 @@ impl GuestType {
             Self::Auctioneer => "💰",
             Self::Bartender => "🍷",
             Self::Dinosaur => "🦖",
+            Self::Dragon => "🐉",
             Self::Mermaid => "🧜‍",
             Self::Alien => "👽",
+            Self::Ghost => "👻",
             Self::Superhero => "🦸",
         }
     }
@@ -79,8 +89,11 @@ impl GuestType {
             Self::OldFriend => 2,
             Self::RichPal => 3,
             Self::Driver => 3,
+            Self::Introvert => 4,
             Self::TicketTaker => 4,
             Self::Hippy => 4,
+            Self::Magician => 5,
+            Self::Photographer => 5,
             Self::Rockstar => 5,
             Self::Comedian => 5,
             Self::Caterer => 5,
@@ -95,8 +108,10 @@ impl GuestType {
             Self::Auctioneer => 9,
             Self::Bartender => 11,
             Self::Dinosaur => 25,
+            Self::Dragon => 30,
             Self::Mermaid => 35,
             Self::Alien => 40,
+            Self::Ghost => 45,
             Self::Superhero => 50,
         }
     }
@@ -109,8 +124,11 @@ impl GuestType {
             Self::OldFriend => 1,
             Self::RichPal => 0,
             Self::Driver => 0,
+            Self::Introvert => 1,
             Self::TicketTaker => -1,
             Self::Hippy => 1,
+            Self::Magician => 1,
+            Self::Photographer => 1,
             Self::Rockstar => 3,
             Self::Comedian => 0,
             Self::Caterer => 4,
@@ -125,8 +143,10 @@ impl GuestType {
             Self::Auctioneer => 0,
             Self::Bartender => 1,
             Self::Dinosaur => 0,
+            Self::Dragon => 0,
             Self::Mermaid => 0,
             Self::Alien => 0,
+            Self::Ghost => 0,
             Self::Superhero => 3,
         }
     }
@@ -139,8 +159,11 @@ impl GuestType {
             Self::OldFriend => 0,
             Self::RichPal => 1,
             Self::Driver => 0,
+            Self::Introvert => 0,
             Self::TicketTaker => 2,
             Self::Hippy => 0,
+            Self::Magician => 0,
+            Self::Photographer => -1,
             Self::Rockstar => 2,
             Self::Comedian => -1,
             Self::Caterer => -1,
@@ -155,8 +178,10 @@ impl GuestType {
             Self::Auctioneer => 3,
             Self::Bartender => 0,
             Self::Dinosaur => 0,
+            Self::Dragon => -3,
             Self::Mermaid => 0,
             Self::Alien => 0,
+            Self::Ghost => 0,
             Self::Superhero => 0,
         }
     }
@@ -169,8 +194,11 @@ impl GuestType {
             Self::OldFriend => false,
             Self::RichPal => false,
             Self::Driver => false,
+            Self::Introvert => false,
             Self::TicketTaker => false,
             Self::Hippy => false,
+            Self::Magician => false,
+            Self::Photographer => false,
             Self::Rockstar => true,
             Self::Comedian => false,
             Self::Caterer => false,
@@ -185,8 +213,10 @@ impl GuestType {
             Self::Auctioneer => false,
             Self::Bartender => false,
             Self::Dinosaur => true,
+            Self::Dragon => false,
             Self::Mermaid => false,
             Self::Alien => false,
+            Self::Ghost => false,
             Self::Superhero => false,
         }
     }
@@ -198,8 +228,11 @@ impl GuestType {
             Self::OldFriend => false,
             Self::RichPal => false,
             Self::Driver => false,
+            Self::Introvert => false,
             Self::TicketTaker => false,
             Self::Hippy => true,
+            Self::Magician => false,
+            Self::Photographer => false,
             Self::Rockstar => false,
             Self::Comedian => false,
             Self::Caterer => false,
@@ -214,8 +247,10 @@ impl GuestType {
             Self::Auctioneer => false,
             Self::Bartender => false,
             Self::Dinosaur => false,
+            Self::Dragon => false,
             Self::Mermaid => false,
             Self::Alien => false,
+            Self::Ghost => false,
             Self::Superhero => false,
         }
     }
@@ -246,6 +281,7 @@ impl std::fmt::Display for Guest {
         if self.trouble {
             write!(f, "!")?;
         }
+        /*
         if self.gtype.is_star() {
             write!(f, "⭐")?;
         }
@@ -255,6 +291,7 @@ impl std::fmt::Display for Guest {
         if self.cash != 0 {
             write!(f, "${}", self.cash)?;
         }
+        */
         Ok(())
     }
 }
@@ -449,4 +486,9 @@ impl House {
     pub fn cheat_guest_mut(&mut self, i: usize) -> &mut Guest {
         &mut self.deck[i]
     }
+    
+    /// Invokes a magician's RNG call.
+    pub fn roll_magician(&mut self) {
+		self.rng.roll();
+	}
 }

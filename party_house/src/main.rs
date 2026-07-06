@@ -3,6 +3,137 @@ use zoldath::{
     rng::Rng,
 };
 
+#[derive(Default)]
+struct HouseResult {
+	delta_time: usize,
+	worth: u32,
+	invited: u32,
+	
+	magician: u32,
+	bought_stars: u32,
+	star: u32,
+}
+
+fn do_party(house: &mut House) -> HouseResult {
+	let mut delta_time = 0usize;
+
+	let mut invited = 0;
+	let mut star = 0;
+	let mut flag = 0;
+	let mut trouble = 0;
+	
+	let mut introv = 0;
+	let mut magician = 0;
+	
+	let bought_stars = house.cheat_deck().iter()
+		.filter(|guest| guest.gtype().is_star())
+		.count() as u32;
+
+	//////////////////////////// greedy invitation
+
+	for i in 0..house.deck_size() as u32 {
+		let gtype = house.cheat_guest(i as usize).gtype();
+		// too much trouble, end party
+		if gtype.is_trouble() {
+			if trouble == 2 {
+				break;
+			}
+			trouble += 1;
+		}
+
+		// invite otherwise
+		invited += 1;
+		if gtype == GuestType::Ghost {
+			invited -= 1;
+		}
+		if gtype == GuestType::Introvert {
+			introv += 1;
+			if introv == 4 && bought_stars < 4 { break; }
+		}
+		if gtype == GuestType::Magician {
+			magician += 1;
+		}
+		if gtype.is_star() {
+			star += 1;
+			if star == 4 {
+				break;
+			}
+		}
+		
+		// full
+		if invited == house.house_size() {
+			break;
+		}
+	}
+
+	//////////////////////////// decide magic
+	
+	if bought_stars >= 4 && star + magician >= 4 {
+		star = 4;	
+	}
+
+	//////////////////////////// close party
+
+	delta_time += 100;
+
+	// win
+	if star >= 4 {
+		return HouseResult {
+			delta_time,
+			worth: 999999,
+			..Default::default()
+		};
+	}
+
+	// payout
+	for i in 0..(invited + star) as usize {
+		let guest = *house.cheat_guest(i);
+		delta_time += 2;
+		if guest.pop() > 0 {
+			house.add_pop(guest.pop());
+			delta_time += 7;
+		}
+		if guest.cash() > 0 {
+			house.add_cash(guest.cash());
+			delta_time += 7;
+		}
+	}
+	if introv > 0 {
+		let blank = (house.house_size() - invited) as i32;
+		house.add_pop(blank * introv);
+		delta_time += 30;
+	}
+
+	// payment
+	for i in 0..(invited + star) as usize {
+		let guest = *house.cheat_guest(i);
+		if guest.pop() < 0 {
+			house.add_pop(guest.pop());
+			delta_time += 7;
+		}
+		if guest.cash() < 0 {
+			house.add_cash(guest.cash());
+			delta_time += 7;
+		}
+	}
+
+	// transition time
+	delta_time += 9 + 3 + 3 + 60 + 36 + 7;
+	
+	let mut worth = house.pop() + 3*house.cash();
+	if bought_stars != star && magician == 0{
+		worth = 0;
+	}
+	HouseResult {
+		delta_time,
+		worth,
+		invited,
+		magician,
+		bought_stars,
+		star,
+	}
+}
+
 /// Returns the estimated number of frames until winning,
 /// or `None` if you don't win.
 fn sim(seed: u64, do_debug: bool) -> Option<usize> {
@@ -14,120 +145,39 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
 
     // when pop reaches this value, buy this guest
     let strategy = [
-        (5, GuestType::Rockstar),
-        (5, GuestType::Rockstar),
-        (4, GuestType::Comedian),
-        (4, GuestType::Comedian),
-        (4, GuestType::Comedian),
-        (4, GuestType::Comedian),
-        (40, GuestType::Alien),
-        (40, GuestType::Alien),
-        (40, GuestType::Alien),
-        (40, GuestType::Alien),
+        (7, GuestType::Gambler),
+        (5, GuestType::Magician),
+        (7, GuestType::Gambler),
+        (4, GuestType::Introvert),
+        (4, GuestType::Introvert),
+        (4, GuestType::Introvert),
+        (4, GuestType::Introvert),
+        (45, GuestType::Ghost),
+        (45, GuestType::Ghost),
+        (45, GuestType::Ghost),
+        (45, GuestType::Ghost),
     ];
     let mut strat_ptr = 0;
     let mut bought_star = 0;
 
-    for day in 0..16 {
-        house.start_day();
-        if do_debug {
-            println!("D{} {house}", 25 - day);
-        }
-
-        let mut delta_time = 0usize;
-
-        let mut invited = 0;
-        let mut star = 0;
-        let mut flag = 0;
-        let mut trouble = 0;
-        
-        let mut comedian = 0;
-
-        //////////////////////////// greedy invitation
-
-        for i in 0..house.house_size().min(house.deck_size() as u32) {
-            let gtype = house.cheat_guest(i as usize).gtype();
-            // too much trouble, use counselor or end party
-            if gtype.is_trouble() {
-                if trouble - flag == 2 {
-                    break;
-                }
-                trouble += 1;
-            }
-
-            // invite otherwise
-            invited += 1;
-            if gtype.is_white_flag() {
-                flag += 1;
-            }
-            if gtype == GuestType::Comedian {
-				comedian += 1;
-			}
-            if gtype.is_star() {
-                star += 1;
-                if star == 4 {
-                    break;
-                }
-            }
-        }
-
-        //////////////////////////// decide styling
-
-        //////////////////////////// close party
-
-        delta_time += 100;
-        if do_debug {
-            let net_invited = invited as u32;
-            if net_invited == house.house_size() {
-                println!("invite full {net_invited}");
-            } else {
-                println!("invite {net_invited}");
-            }
-        }
-
-        // win
-        if star >= 4 {
-            time += delta_time;
-            if do_debug {
-                println!("estimated +{delta_time}f => {time}f");
-            }
-            return Some(time);
-        }
-
-        // payout
-        for i in 0..invited as usize {
-            let guest = *house.cheat_guest(i);
-            delta_time += 2;
-            if guest.pop() > 0 {
-                house.add_pop(guest.pop());
-                delta_time += 7;
-            }
-            if guest.cash() > 0 {
-                house.add_cash(guest.cash());
-                delta_time += 7;
-            }
-        }
-        if comedian > 0 && invited == house.house_size() {
-			house.add_pop(5 * comedian);
-			delta_time += 30;
+    for day in 0..15 {
+		house.start_day();
+		if do_debug {
+			println!("D{} {house}", 25-day);
 		}
-
-        // payment
-        for i in 0..invited as usize {
-            let guest = *house.cheat_guest(i);
-            if guest.pop() < 0 {
-                house.add_pop(guest.pop());
-                delta_time += 7;
-            }
-            if guest.cash() < 0 {
-                house.add_cash(guest.cash());
-                delta_time += 7;
-            }
-        }
-
-        // transition time
-        delta_time += 9 + 3 + 3 + 60 + 36 + 7;
-
+		
+		let house_result = do_party(&mut house);
+		let mut delta_time = house_result.delta_time;
+		
+		if do_debug {
+			println!("invite {}", house_result.invited);
+		}
+		
+		if house_result.worth >= 999999 {
+			time += delta_time;
+			return Some(time);
+		}
+		
         //////////////////////////// shop
 
 		//println!("NOW {house}");
@@ -158,17 +208,45 @@ fn sim(seed: u64, do_debug: bool) -> Option<usize> {
         if do_debug {
             println!("estimated +{delta_time}f => {time}f");
         }
+
+        //////////////////////////// magician rng
+        
+        let mut best = (0, 0); // (worth, #rolls)
+        for magic_roll in 0..50 {
+			let mut sim_house = house.clone();
+			for _ in 0..magic_roll {
+				sim_house.roll_magician();
+			}
+			sim_house.start_day();
+			let next_result = do_party(&mut sim_house);
+			best = best.max((next_result.worth, magic_roll));
+			
+			// cannot actually roll
+			if house_result.magician == 0 { break; }
+			if house_result.bought_stars != house_result.star {
+				break;
+			}
+		}
+		
+		let num_rolls = best.1;
+		for _ in 0..num_rolls {
+			house.roll_magician();
+		}
+		time += num_rolls;
+        if do_debug {
+            println!("{num_rolls} magician rolls");
+        }
     }
     None
 }
 
 const SEED_START: u64 = 0;
-const TRIES: u64 = 100_000_000;
+const TRIES: u64 = 10_000_000;
 
 fn main() {
     let mut optimum = (999999, 0);
     for seed in SEED_START..SEED_START + TRIES {
-        if seed % 2_000_000 == 0 {
+        if seed % 200_000 == 0 {
             println!("done {seed}");
         }
         let Some(time) = sim(seed, false) else {
